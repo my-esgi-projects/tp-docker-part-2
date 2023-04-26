@@ -1,4 +1,4 @@
-# TP I DOCKER: Création d'une image docker légère pour Nextcloud
+# TP II DOCKER: Déploiement d'une application multi-conteneurs avec Docker compose
 
 ## Etape 1: Selection d'une application monoconteneur
 
