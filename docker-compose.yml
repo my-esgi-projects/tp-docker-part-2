@@ -1,0 +1,59 @@
+---
+version: "3.9"
+services:
+  nextcloud:
+    image: nextcloud:v3
+    container_name: nextcloud_app
+    ports:
+      - "8183:80"
+    restart: always
+    volumes:
+      - type: volume
+        source: nextcloud_data
+        target: /var/www/nextcloud/data
+    user: www-data
+    networks:
+      - nexcloud_net
+      - mysql_net
+      - redis_net
+    depends_on:
+      - mysql
+      - redis
+  
+  mysql:
+    image: mariadb:10.6
+    container_name: nextcloud_database
+    env_file: .env
+    volumes:
+      - type: volume
+        source: db
+        target: /var/lib/mysql
+    networks:
+      - mysql_net
+
+  redis:
+    image: redis
+    container_name: nextcloud_cache
+    networks:
+      - redis_net
+
+networks:
+  nexcloud_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.29.0.0/30"
+  mysql_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.27.0.0/29"
+  redis_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: "192.168.0.0/28"
+
+volumes:
+  nextcloud_data:
+  db:
