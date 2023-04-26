@@ -6,7 +6,7 @@ L'application ici sera nexcloud avec un redis et une bd mysql.
 
 ## Etape 2: Création des dockerfile pour les services
 
-Ici nous allons utiliser une image de base nextcloud buildée par nos soins [voir repository](https://dsdsds).
+Ici nous allons utiliser une image de base nextcloud buildée par nos soins [voir repository alpine with php-image](https://github.com/my-esgi-projects/tp-docker-part-1#etape-4-cr%C3%A9ation-de-limage-docker-bas%C3%A9e-sur-une-alternative-l%C3%A9g%C3%A8re).
 Et les images mysql et redis seront des images communautaires.
 
 La principale motivation de ne pas builder ces services soi même rélève du fait que ce sont des images avec peu de dépendences. On est loin du nextcloud qui inclus php et apache qui sont deux gros services quand même.
@@ -14,7 +14,65 @@ La principale motivation de ne pas builder ces services soi même rélève du fa
 ## Etape 3: Création du fichier docker-compose
 
 ```yaml
+---
+version: "3.9"
+services:
+  nextcloud:
+    image: nextcloud:v3
+    container_name: nextcloud_app
+    ports:
+      - "8183:80"
+    restart: always
+    volumes:
+      - type: volume
+        source: nextcloud_data
+        target: /var/www/nextcloud/data
+    user: www-data
+    networks:
+      - nexcloud_net
+      - mysql_net
+      - redis_net
+    depends_on:
+      - mysql
+      - redis
+  
+  mysql:
+    image: mariadb:10.6
+    container_name: nextcloud_database
+    env_file: .env
+    volumes:
+      - type: volume
+        source: db
+        target: /var/lib/mysql
+    networks:
+      - mysql_net
 
+  redis:
+    image: redis
+    container_name: nextcloud_cache
+    networks:
+      - redis_net
+
+networks:
+  nexcloud_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.29.0.0/30"
+  mysql_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.27.0.0/29"
+  redis_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: "192.168.0.0/28"
+
+volumes:
+  nextcloud_data:
+  db:
 ```
 
 ## Etape 4: Déploiement de l'application avec docker-compose
@@ -287,6 +345,23 @@ nextcloud_app       | 127.0.0.1 -  26/Apr/2023:09:45:18 +0000 "GET /ocs/v2.php" 
 nextcloud_app       | 127.0.0.1 -  26/Apr/2023:09:45:19 +0000 "GET /ocs/v2.php" 304
 ```
 
+## Avantages de docker-compose
+
+* Simplification de la gestion de plusieurs conteneurs : avec Docker Compose, vous pouvez gérer plusieurs conteneurs Docker en une seule commande, plutôt que de les gérer individuellement.
+
+* Configuration de l'environnement de développement : Docker Compose permet de définir un ensemble de services pour votre application, ce qui facilite la configuration de votre environnement de développement et assure que tous les développeurs travaillent avec le même environnement.
+
+* Facilité de déploiement : avec Docker Compose, vous pouvez facilement déployer vos conteneurs sur n'importe quelle machine avec Docker installé, ce qui rend le déploiement de votre application beaucoup plus facile.
+
+* Gestion de plusieurs environnements : Docker Compose permet de gérer facilement différents environnements, comme les environnements de test, de développement et de production, en utilisant des fichiers de configuration YAML distincts pour chaque environnement.
+
 ## Etape 5: Documentation et Conclusions
 
-* 
+* Défis et solutions apportées
+
+Défis rencontrés                                                 | Solutions apportées  
+|----------------------------------------------------------------|---------------------------------|
+Droit d'accès sur le repertoire /var/www/nextcloud/data après mount du volume  | Ajout de la directive user au service nextcloud dans le docker-compose |
+Gestion de l'isolation des réseaux                 | Création d'un network par service
+
+NB: la configuration de redis se fait dans le cadre de l'optimisation de nextcloud.
